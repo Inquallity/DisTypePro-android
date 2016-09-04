@@ -2,26 +2,29 @@ package ru.ibakaidov.distypepro;
 
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.EditText;
 
-import java.lang.reflect.Array;
 import java.util.List;
 
 import ru.ibakaidov.distypepro.util.YandexMetricaHelper;
 
 /**
- * Created by aacidov on 29.05.16.
+ * @author aacidov on 29.05.16.
  */
 public class SayButtonController implements View.OnClickListener {
+
     private AutoCompleteTextView si;
+
     private DB db;
+
     private CategoryController cc;
+
     private WordsController wc;
+
     private TTS tts;
+
     private SpeechController sc;
 
 

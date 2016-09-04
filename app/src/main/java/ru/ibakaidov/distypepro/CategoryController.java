@@ -16,15 +16,23 @@ import java.util.ArrayList;
 /**
  * Created by aacidov on 29.05.16.
  */
+@Deprecated
 public class CategoryController implements AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener {
 
     private final String delete;
+
     public int currentCategory = 0;
+
     private ListView categoriesLV;
+
     private Context cxt;
+
     private DB db;
+
     private String addCategory;
+
     private WordsController wc;
+
     private String editCategory;
 
     public CategoryController(ListView categoriesLV, Context cxt, DB db, String addCategory, String editCategory, String delete) {

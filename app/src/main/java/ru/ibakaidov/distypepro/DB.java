@@ -14,22 +14,18 @@ import ru.ibakaidov.distypepro.util.YandexMetricaHelper;
 /**
  * Created by aacidov on 28.05.16.
  */
-
+@Deprecated
+// TODO: 9/4/16 Deprecated. Must be replaced with async logic with Loaders and ContentProvider
 public class DB {
-    DBHelper dbHelper;
+
     static String withoutCategory;
+
+    DBHelper dbHelper;
 
     public DB(Context cxt, String withoutCategory) {
         DB.withoutCategory = withoutCategory;
         dbHelper = new DBHelper(cxt);
 
-    }
-
-    public void createCategory(String label) {
-
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        DB.createCategory(db, label);
-        db.close();
     }
 
     public static void createCategory(SQLiteDatabase db, String label) {
@@ -39,10 +35,16 @@ public class DB {
         YandexMetricaHelper.categoryEvent(label);
     }
 
+    public void createCategory(String label) {
+
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        DB.createCategory(db, label);
+        db.close();
+    }
 
     public void createStatement(String statement, int category) {
         if (statement == null || statement.length() == 0) {
-            Logger.log("Trying to add empty statement.");
+            Logger.debug("Trying to add empty statement.");
             return;
         }
 
@@ -142,7 +144,7 @@ public class DB {
 
     public void editStatement(String old, String newText) {
         if (newText == null || newText.length() == 0) {
-            Logger.log("Trying to empty statement.");
+            Logger.debug("Trying to empty statement.");
             return;
         }
 

@@ -14,19 +14,28 @@ import android.widget.TextView;
 import java.util.ArrayList;
 
 /**
- * Created by aacidov on 29.05.16.
+ * @author Bakaidov on 29.05.16.
  */
+@Deprecated
 public class WordsController implements AdapterView.OnItemLongClickListener, AdapterView.OnItemClickListener {
+
     private Context cxt;
+
     private DB db;
+
     private String delete;
+
     private String editStatement;
+
     private CategoryController categoryController;
+
     private ListView wordsLV;
+
     private String addStatement;
+
     private TTS tts;
 
-    public WordsController(Context cxt, DB db, String delete, String editStatement, String addStatement, CategoryController categoryController, ListView wordsLV, TTS tts){
+    public WordsController(Context cxt, DB db, String delete, String editStatement, String addStatement, CategoryController categoryController, ListView wordsLV, TTS tts) {
         this.cxt = cxt;
         this.db = db;
         this.delete = delete;
@@ -39,7 +48,7 @@ public class WordsController implements AdapterView.OnItemLongClickListener, Ada
 
     @Override
     public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-        if (position==parent.getAdapter().getCount()-1) return true;
+        if (position == parent.getAdapter().getCount() - 1) return true;
         final String selected = ((TextView) view).getText().toString();
         final AlertDialog.Builder builder = new AlertDialog.Builder(cxt);
         final TextView titleBox = new TextView(cxt);
@@ -48,11 +57,11 @@ public class WordsController implements AdapterView.OnItemLongClickListener, Ada
         final TextView titleEditBox = new TextView(cxt);
         titleEditBox.setText(R.string.edit_statement);
 
-       final LinearLayout ll = new LinearLayout(cxt);
+        final LinearLayout ll = new LinearLayout(cxt);
         ll.setOrientation(LinearLayout.VERTICAL);
         final ListView lv = new ListView(cxt);
         lv.setAdapter(new ArrayAdapter<String>(cxt, R.layout.support_simple_spinner_dropdown_item, db.getCategories().toArray(new String[]{})));
-        
+
         String[] managerStrings = new String[]{editStatement, delete};
         final ListView managerLV = new ListView(cxt);
 
@@ -82,7 +91,7 @@ public class WordsController implements AdapterView.OnItemLongClickListener, Ada
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
-                switch (position){
+                switch (position) {
                     case 0:
                         //edit statement
                         AlertDialog.Builder builder = new AlertDialog.Builder(cxt);
@@ -113,11 +122,11 @@ public class WordsController implements AdapterView.OnItemLongClickListener, Ada
                         break;
                     case 1:
                         //delete statement
-                        
+
                         DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dDialog, int which) {
-                                switch (which){
+                                switch (which) {
                                     case DialogInterface.BUTTON_POSITIVE:
 
                                         db.deleteStatement(selected);
@@ -141,15 +150,16 @@ public class WordsController implements AdapterView.OnItemLongClickListener, Ada
         });
         return true;
     }
+
     public void loadStatements() {
-        ArrayList< String > statements = db.getStatements(categoryController.currentCategory);
+        ArrayList<String> statements = db.getStatements(categoryController.currentCategory);
         statements.add(addStatement);
         wordsLV.setAdapter(new ArrayAdapter<String>(cxt, R.layout.support_simple_spinner_dropdown_item, statements.toArray(new String[statements.size()])));
     }
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        if( wordsLV.getAdapter().getCount()-1==position){
+        if (wordsLV.getAdapter().getCount() - 1 == position) {
             AlertDialog.Builder builder = new AlertDialog.Builder(cxt);
             builder.setTitle(R.string.add_statement);
             final EditText input = new EditText(cxt);
@@ -170,7 +180,7 @@ public class WordsController implements AdapterView.OnItemLongClickListener, Ada
             dialog.show();
             return;
         }
-        String tfs=((TextView) view).getText().toString();
+        String tfs = ((TextView) view).getText().toString();
         tts.speak(tfs);
         db.updateRating(tfs);
         loadStatements();
