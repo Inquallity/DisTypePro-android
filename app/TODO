@@ -2,8 +2,8 @@ TODO
 + edit DB class, delete repits
 + create classes for lists
 + edit statement onhold menu..
-+ fix tts class
-+ make checkable item online tts
++ fix textSpeaker class
++ make checkable item online textSpeaker
 + think about tabs for multispeech
 + localize
 + icon

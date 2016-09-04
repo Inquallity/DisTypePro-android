@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="action_settings">Настройки</string>
-    <string name="choose_voice">Выбрать голос</string>
+    <string name="app_name" translatable="false">Distype Pro</string>
+    <string name="voice_chooser.choose_voice">Выбрать голос</string>
     <string-array name="voices">
         <item>Алиса</item>
         <item>Емиль</item>
@@ -9,21 +9,19 @@
         <item>Ома</item>
         <item>Захар</item>
     </string-array>
-    <string name="cancel">Отмена</string>
-    <string name="say">Сказать</string>
-    <string name="add_category">Добавить категорию</string>
-    <string name="add_statement">Добавить высказывание</string>
-    <string name="change_category">Сменить категорию</string>
+
+    <string name="main.say">Сказать</string>
+    <string name="main.add_category">Добавить категорию</string>
+    <string name="main.speech_initialization_label">Инициализация…</string>
+    <string name="main.speech_error_label">Ошибка: %s. Пожалуйста, попробуйте offline-mode</string>
+
+    <string name="menu.is_online">Использовать интернет</string>
+    <string name="menu.say_after_each_word">Произносить после каждого слова</string>
+
+    <!-- Common strings -->
+    <string name="yes">@android:string/yes</string>
+    <string name="no">@android:string/no</string>
+    <string name="cancel">@android:string/cancel</string>
     <string name="clear">Отчистить</string>
     <string name="delete">Удалить</string>
-    <string name="edit_statement">Редактировать высказывание</string>
-
-    <string name="is_online_voice">Использовать интернет</string>
-    <string name="no">Нет</string>
-    <string name="new_speech">Новый диалог</string>
-    <string name="selectSpeech">Выбрать диалог</string>
-    <string name="withoutCategory">Без категории</string>
-    <string name="yes">Да</string>
-    <string name="edit_category">Редактировать категорию</string>
-    <string name="say_after_word_input">Произносить после ввода каждого слова</string>
 </resources>

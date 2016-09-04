@@ -17,6 +17,29 @@
             app:popupTheme="@style/AppTheme.PopupOverlay" />
     </android.support.design.widget.AppBarLayout>
 
-    <include layout="@layout/content_main" />
+    <FrameLayout
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <include layout="@layout/content_main" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/fabAddCategory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_margin="@dimen/margin_medium"
+            android:src="@drawable/ic_add_white" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/fabAddWord"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="@dimen/margin_medium"
+            android:src="@drawable/ic_add_white" />
+    </FrameLayout>
 
 </android.support.design.widget.CoordinatorLayout>

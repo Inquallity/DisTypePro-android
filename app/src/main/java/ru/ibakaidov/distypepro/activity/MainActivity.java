@@ -1,127 +1,159 @@
 package ru.ibakaidov.distypepro.activity;
 
-import android.app.AlertDialog;
+import android.app.LoaderManager;
+import android.content.ContentValues;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.SharedPreferences;
+import android.content.CursorLoader;
+import android.content.Loader;
+import android.database.Cursor;
 import android.media.AudioManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import com.yandex.metrica.YandexMetrica;
 
-import ru.ibakaidov.distypepro.BuildConfig;
-import ru.ibakaidov.distypepro.DB;
-import ru.ibakaidov.distypepro.IsOnlineVoiceController;
+import java.util.List;
+
 import ru.ibakaidov.distypepro.R;
-import ru.ibakaidov.distypepro.SayButtonController;
-import ru.ibakaidov.distypepro.SpeechController;
-import ru.ibakaidov.distypepro.TTS;
+import ru.ibakaidov.distypepro.adapter.CategoriesListAdapter;
+import ru.ibakaidov.distypepro.adapter.WordsListAdapter;
+import ru.ibakaidov.distypepro.dialog.VoiceChooserDialog;
+import ru.ibakaidov.distypepro.model.Category;
+import ru.ibakaidov.distypepro.model.Word;
+import ru.ibakaidov.distypepro.sqlite.tables.CategoryTable;
+import ru.ibakaidov.distypepro.sqlite.tables.WordTable;
+import ru.ibakaidov.distypepro.util.Analytics;
+import ru.ibakaidov.distypepro.util.ItemTouchListenerImpl;
+import ru.ibakaidov.distypepro.util.Objects;
+import ru.ibakaidov.distypepro.util.PrefUtils;
+import ru.ibakaidov.distypepro.util.TextSpeaker;
+import ru.ibakaidov.distypepro.util.TextWatcherImpl;
+import ru.yandex.speechkit.Error;
+import ru.yandex.speechkit.Initializer;
+import ru.yandex.speechkit.InitializerListener;
 
-
-public class MainActivity extends AppCompatActivity {
-
-    TTS tts;
-
-    private DB db;
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, InitializerListener {
 
     private RecyclerView rvWords;
 
     private RecyclerView rvCategories;
 
-    private EditText etText;
+    private EditText etTextPrimary;
 
-    private IsOnlineVoiceController iovc;
+    private EditText etTextSecondary;
 
-    private SpeechController sc;
+    private FloatingActionButton fabAddCategory;
 
-    private SayButtonController sbc;
+    private TextSpeaker ttsDelegate;
+
+    private ConnectivityManager connectivityManager;
+
+    private WordsListAdapter wordsAdapter = new WordsListAdapter();
+
+    private CategoriesListAdapter categoriesAdapter = new CategoriesListAdapter();
+
+    private TextWatcherImpl inputWatcher = new TextWatcherImpl() {
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+        }
+    };
+
+    private TextView btnSay;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
-//        sc = new SpeechController(this, getString(R.string.new_speech), null);
-//        sbc.setSC(sc);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.choose_voice) {
-            final String[] voices = getResources().getStringArray(R.array.voices);
-            final String[] voiceNames = new String[]{"ALYSS", "ERMIL", "JANE", "OMAZH", "ZAHAR"};
-
-
-            SharedPreferences sharedPref = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
-            final String sCurrentVoice = getString(R.string.current_voice);
-            int idCurrentVoice = sharedPref.getInt(sCurrentVoice, 4);
-
-            final SharedPreferences.Editor editor = sharedPref.edit();
-
-            AlertDialog.Builder adb = new AlertDialog.Builder(this);
-
-            adb.setSingleChoiceItems(voices, idCurrentVoice, new DialogInterface.OnClickListener() {
-
-                @Override
-                public void onClick(DialogInterface d, int n) {
-                    d.cancel();
-                    tts.voice = voiceNames[n];
-                    editor.putInt(sCurrentVoice, n);
-                    editor.apply();
-
+        switch (item.getItemId()) {
+            case R.id.choose_voice:
+                VoiceChooserDialog.show(getFragmentManager());
+                return true;
+            case R.id.clear:
+                final View focus = getWindow().getCurrentFocus();
+                if (focus instanceof EditText) {
+                    ((EditText) focus).setText(null);
                 }
-
-            });
-            adb.setNegativeButton(R.string.cancel, null);
-            adb.setTitle(R.string.choose_voice);
-            adb.show();
-            return true;
+                return true;
+            case R.id.is_online_voice:
+                // TODO: 9/4/16 Implement this feature
+                //Analytics.changeOnlineValueEvent(this.mTextSpeaker.isOnline);
+            case R.id.say_after_word_input:
+                // TODO: 9/4/16 Implement this feature
+                //Analytics.changeSayingAfterWordValueEvent(this.mTextSpeaker.isSayAfterWordInput);
+                return true;
+            default:
+                return false;
         }
+    }
 
-        if (id == R.id.clear) {
-//            si.setText("");
-            return true;
+    @Override
+    public void onClick(View v) {
+        if (v.getId() == R.id.btnSay) {
+            final View currentFocus = getWindow().getCurrentFocus();
+            if (currentFocus instanceof EditText) {
+                final String text = ((EditText) currentFocus).getText().toString();
+                if (isConnected()) {
+                    ttsDelegate.speakWithYandex(text, PrefUtils.getCurrentVoice(this));
+                } else {
+                    ttsDelegate.speakWithGoogle(text);
+                }
+                saveWord(text);
+            }
+        } else if (v.getId() == R.id.fabAddCategory) {
+            Snackbar.make(rvCategories, "Add category feature not implemented yet", Snackbar.LENGTH_LONG).show();
         }
+    }
 
-        if (id == R.id.is_online_voice || id == R.id.say_after_word_input) {
-            iovc.onMenuItemClick(item);
-            return true;
-        }
+    @Override
+    public void onInitializerBegin(Initializer initializer) {
+        btnSay.setText(R.string.main_speech_initialization_label);
+    }
 
-        if (id == R.id.selectSpeech) {
-            sc.openDialog();
-            return true;
-        }
+    @Override
+    public void onInitializerDone(Initializer initializer) {
+        btnSay.setText(R.string.main_say);
+    }
 
-        return super.onOptionsItemSelected(item);
+    @Override
+    public void onError(Initializer initializer, Error error) {
+        btnSay.setText(getString(R.string.main_speech_error_label, error.getString()));
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.ac_main);
-
-        setVolumeControlStream(AudioManager.STREAM_MUSIC);
-
         initViews();
-
-
-        tts = new TTS(getApplicationContext(), BuildConfig.YA_GENERAL_KEY);
+        Initializer.create(this).start();
+        connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        ttsDelegate = new TextSpeaker(this);
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        tts.update();
         YandexMetrica.onResumeActivity(this);
     }
 
@@ -131,35 +163,128 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
     }
 
+    @Override
+    protected void onStop() {
+        ttsDelegate.stopService();
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        ttsDelegate.shutdownService();
+        super.onDestroy();
+    }
+
+    private void saveWord(@NonNull String text) {
+        final Word word = new Word();
+        word.setWordString(text);
+        word.setCategoryId(CategoryTable.DEFAULT_CATEGORY_ID);
+        final ContentValues values = WordTable.toValues(word);
+        // TODO: 9/4/16 Add universal thread pool for asynchronous task
+        getContentResolver().insert(WordTable.TABLE_URI, values);
+        Analytics.trackEvent(Analytics.EVENT_CREATE_STATEMENT, text);
+    }
+
+    private boolean isConnected() {
+        final NetworkInfo nwInfo = connectivityManager.getActiveNetworkInfo();
+        return nwInfo != null && nwInfo.isConnected();
+    }
+
     private void initViews() {
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
+
         rvWords = (RecyclerView) findViewById(R.id.rvWords);
+        rvWords.setItemAnimator(new DefaultItemAnimator());
+        rvWords.setLayoutManager(new LinearLayoutManager(this));
+        rvWords.addOnItemTouchListener(new ItemTouchListenerImpl(this, new OnWordTouchListener()));
+        rvWords.setAdapter(wordsAdapter);
+
         rvCategories = (RecyclerView) findViewById(R.id.rvCategories);
+        rvCategories.setItemAnimator(new DefaultItemAnimator());
+        rvCategories.setLayoutManager(new LinearLayoutManager(this));
+        rvCategories.addOnItemTouchListener(new ItemTouchListenerImpl(this, new OnCategoryTouchListener()));
+        rvCategories.setAdapter(categoriesAdapter);
 
-        etText = (EditText) findViewById(R.id.etTextForSpeech);
+        etTextPrimary = (EditText) findViewById(R.id.etTextForSpeechPrimary);
+        Objects.requireNonNull(etTextPrimary);
+        etTextPrimary.addTextChangedListener(inputWatcher);
 
-        final TextView btnSay = (TextView) findViewById(R.id.btnSay);
+        etTextSecondary = (EditText) findViewById(R.id.etTextForSpeechSecondary);
+        Objects.requireNonNull(etTextSecondary);
+        etTextSecondary.addTextChangedListener(inputWatcher);
 
-//        db = new DB(MainActivity.this, getString(R.string.withoutCategory));
+        btnSay = (TextView) findViewById(R.id.btnSay);
+        Objects.requireNonNull(btnSay);
+        btnSay.setOnClickListener(this);
 
-//        cc.setWC(wc);
-//        iovc = new IsOnlineVoiceController(tts);
+        fabAddCategory = (FloatingActionButton) findViewById(R.id.fabAddCategory);
+        Objects.requireNonNull(fabAddCategory);
+        fabAddCategory.setOnClickListener(this);
 
-//        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-//                android.R.layout.simple_dropdown_item_1line, db.getStatements());
-//        si.setAdapter(adapter);
+        getLoaderManager().initLoader(R.id.l_words, Bundle.EMPTY, new CursorLoaderCallbacks());
+        getLoaderManager().initLoader(R.id.l_category, Bundle.EMPTY, new CursorLoaderCallbacks());
+    }
 
-//        Button sb = (Button) findViewById(R.id.btnSay);
-//        sbc = new SayButtonController(si, db, cc, wc, tts);
+    private class CursorLoaderCallbacks implements LoaderManager.LoaderCallbacks<Cursor> {
 
-//        sb.setOnClickListener(sbc);
-//
-//        categoriesLV.setOnItemClickListener(cc);
-//        categoriesLV.setOnItemLongClickListener(cc);
-//        wordsLV.setOnItemClickListener(wc);
-//        wordsLV.setOnItemLongClickListener(wc);
-//
-//        cc.loadCategories();
-//        wc.loadStatements();
+        @Override
+        public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+            if (id == R.id.l_words) {
+                return new CursorLoader(getApplicationContext(), WordTable.TABLE_URI, null, null, null, null);
+            } else if (id == R.id.l_category) {
+                return new CursorLoader(getApplicationContext(), CategoryTable.TABLE_URI, null, null, null, null);
+            }
+            return null;
+        }
+
+        @Override
+        public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+            if (data == null || data.getCount() == 0) {
+                return;
+            }
+            if (R.id.l_words == loader.getId()) {
+                final List<Word> words = WordTable.toList(data);
+                wordsAdapter.changeDataSet(words);
+            }
+            if (R.id.l_category == loader.getId()) {
+                final List<Category> categories = CategoryTable.toList(data);
+                categoriesAdapter.changeDataSet(categories);
+            }
+        }
+
+        @Override
+        public void onLoaderReset(Loader<Cursor> loader) {
+
+        }
+    }
+
+    private class OnCategoryTouchListener extends GestureDetector.SimpleOnGestureListener {
+
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            final View view = rvCategories.findChildViewUnder(e.getX(), e.getY());
+            final int position = rvCategories.getChildAdapterPosition(view);
+            if (view != null) {
+                final Category category = categoriesAdapter.getItem(position);
+                Snackbar.make(rvCategories, "Selected " + category.getCategoryName() + " category.", Snackbar.LENGTH_SHORT).show();
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private class OnWordTouchListener extends GestureDetector.SimpleOnGestureListener {
+
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            final View view = rvWords.findChildViewUnder(e.getX(), e.getY());
+            final int position = rvWords.getChildAdapterPosition(view);
+            if (view != null) {
+                final Word category = wordsAdapter.getItem(position);
+                Snackbar.make(rvWords, "Selected " + category.getWordString() + " word.", Snackbar.LENGTH_SHORT).show();
+                return true;
+            }
+            return false;
+        }
     }
 }
