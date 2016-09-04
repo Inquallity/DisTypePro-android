@@ -14,9 +14,7 @@ public class AppDelegate extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        if (!BuildConfig.DEBUG) {
-            YandexMetrica.activate(this, BuildConfig.YA_METRICA_KEY);
-        }
+        YandexMetrica.activate(this, BuildConfig.YA_METRICA_KEY);
         SpeechKit.getInstance().configure(this, BuildConfig.YA_GENERAL_KEY);
     }
 }
